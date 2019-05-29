@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
- 
+
 import cat.cdb.repository.CdbTransactionSequenceRepository;
 
 @Service
@@ -25,5 +25,13 @@ public class TransactionSequenceService {
 			transactionId = "DUMMY00000001";
 
 		return transactionId;
+	}
+
+	public CdbTransactionSequenceRepository getTranSequenceRepository() {
+		return tranSequenceRepository;
+	}
+
+	public void setTranSequenceRepository(CdbTransactionSequenceRepository tranSequenceRepository) {
+		this.tranSequenceRepository = tranSequenceRepository;
 	}
 }

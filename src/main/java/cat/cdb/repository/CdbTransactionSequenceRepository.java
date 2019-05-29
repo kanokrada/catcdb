@@ -1,12 +1,16 @@
 package cat.cdb.repository;
 
+import java.math.BigDecimal;
+
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import cat.cdb.domain.crmdata.CdbTransactionSequence;
 
 public interface CdbTransactionSequenceRepository extends JpaRepository<CdbTransactionSequence, Long> {
-
 	@Query(value = " SELECT CAST(SYS_GUID() AS VARCHAR2(120)) FROM DUAL", nativeQuery = true)
 	String getNEXTRAWID();
 
@@ -63,4 +67,9 @@ public interface CdbTransactionSequenceRepository extends JpaRepository<CdbTrans
 
 	@Query(value = " SELECT PMS.PM_SAA_SEQ.NEXTVAL FROM DUAL", nativeQuery = true)
 	Long getNextPmAppSaaId();
+	
+	@Transactional
+	@Modifying
+	@Query(value = " ALTER SEQUENCE CRMDATA.TEST_SEQUENCE INCREMENT BY TO_NUMBER(:id)", nativeQuery = true)
+	void setIncrementalCrmCaNumber(@Param("id") Integer id);	
 }

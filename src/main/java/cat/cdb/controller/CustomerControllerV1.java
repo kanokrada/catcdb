@@ -1,9 +1,6 @@
 package cat.cdb.controller;
 
-import java.text.MessageFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,28 +16,19 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 import cat.cdb.controller.base.ControllerBase;
-import cat.cdb.domain.crmdata.view.ViewCatMyIdentityZone;
 import cat.cdb.entity.rest.RequestContent;
 import cat.cdb.entity.rest.ResponseContent;
 import cat.cdb.entity.rest.request.CustomerReserve;
-import cat.cdb.entity.rest.request.IdentityZoneDetail;
-import cat.cdb.entity.rest.request.IdentityZoneMyInquiry;
-import cat.cdb.entity.rest.request.IdentityZoneMyRequest;
 import cat.cdb.entity.rest.response.CustomerReserveResponse;
-import cat.cdb.entity.rest.response.IdentityZoneDetailResponse;
-import cat.cdb.entity.rest.response.IdentityZoneDetailResponseItem;
-import cat.cdb.entity.rest.response.IdentityZoneMyResponse;
-import cat.cdb.entity.rest.response.IdentityZoneServiceItem;
+import cat.cdb.entity.rest.response.CustomerReserveResponseItem;
 import cat.cdb.service.IdentityZoneMyService;
 import cat.cdb.service.ProductMyService;
 import cat.cdb.service.TransactionSequenceService;
 import cat.cdb.util.CdbConstance;
 import cat.cdb.util.CdbLogger;
-import cat.cdb.util.JavaHelper;
 
 @Controller
 @Scope("request")
@@ -52,13 +40,11 @@ public class CustomerControllerV1 implements ControllerBase {
 			ProductMyService myService) {
 		this.tranSevice = tranSevice;
 		this.zoneService = zoneService;
-		this.myService = myService;
 		setBaseTransaction();
 	}
 
-	IdentityZoneMyService zoneService;
-	ProductMyService myService;
 	TransactionSequenceService tranSevice;
+	IdentityZoneMyService zoneService;
 	private String cdbTransactionId;
 	private static final Logger logger = LoggerFactory.getLogger(CustomerControllerV1.class);
 
@@ -71,128 +57,32 @@ public class CustomerControllerV1 implements ControllerBase {
 			@RequestHeader(value = "request_date") String requestDate,
 			@RequestHeader(value = "request_by") String requestBy) {
 		CustomerReserveResponse respBody = new CustomerReserveResponse(this.cdbTransactionId);
-
-		// init response value
-		respBody.getResponseItems().setZone(CdbConstance.ZONE_MY_PUBLIC_02);
-		respBody.getResponseItems().setVerifiedIdentity(false);
-
-		// find mobile zone
-		ViewCatMyIdentityZone mobileZone = zoneService.findServiceZone(request.getRequestMessage().getMdn(),
-				request.getRequestMessage().getRegisterId());
-
-		if (mobileZone != null) {
-			respBody.setStatusSuccess();
-			respBody.getResponseItems().setCatSvcId(mobileZone.getCatSvcId());
-			respBody.getResponseItems().setCustomerFullName(mobileZone.getCustomerFullName());
-			respBody.getResponseItems().setStartDate(mobileZone.getStartDate());
-			respBody.getResponseItems().setEndDate(mobileZone.getEndDate());
-			respBody.getResponseItems().setCustomerType(mobileZone.getCustomerType());
-			// zone ทั่วไป =0 , zone 3 จว.ภาคใต้ =1, zone null = zone 0
-			// verifiedIdentity = Y คือลงทะเบียนอัตลักษณ์
-			if (JavaHelper.isNull(mobileZone.getPermitZone()) // zone null or
-					|| mobileZone.getPermitZone().intValue() == CdbConstance.ZONE_MY_PUBLIC_02) {// zone Zero(public)
-
-				CdbLogger.debug(logger, "ZONE_MY_PUBLIC_02", this.cdbTransactionId);
-				// ถ้ายังไม่เคยขอใช้งาน 3 จว. ชายแดนใต้
-				// อนุญาตให้ใช้งานได้ถ้ายืนยันอัตลักษณ์แล้ว
-				// permitZone1 = true;
-				if (mobileZone.getVerifiedIdentity().equalsIgnoreCase(CdbConstance.VERIFIED_IDENTITY_PASS)) {
-					// apply zone 1?
-					respBody.getResponseItems().setVerifiedIdentity(true);
-					respBody.getResponseItems().setVerifiedIdentityDate(mobileZone.getVerifiedIdentityDate());
-
-					if (myService.applyZoneMy(mobileZone.getCatSvcId(), CdbConstance.ZONE_MY_BLOCK_01)) {
-						CdbLogger.debug(logger, "Identity apply ZONE_MY_BLOCK_01", this.cdbTransactionId);
-						permitZone1 = true;
-						if (CdbConstance.INTERFACE_SOURCE.SMS.equalsIgnoreCase(interfaceSource)) {
-							respBody.setResponseMessage(CdbConstance.RESP_EN_NOPASS_ZONE1);
-						} else {
-							respBody.setResponseMessage(CdbConstance.RESP_TH_NOPASS_ZONE1);
-						}
-						respBody.getResponseItems().setZone(CdbConstance.ZONE_MY_BLOCK_01);
-						respBody.getResponseItems().setPermitZone1Date(JavaHelper.getCurrentDate());
-						respBody.getResponseItems().setMdn(request.getRequestMessage().getMdn());
-						respBody.getResponseItems().setStartDate(mobileZone.getStartDate());
-						respBody.getResponseItems().setRegisterId(mobileZone.getRegisterId());
-						respBody.getResponseItems().setServiceType(mobileZone.getServiceType());
-					} else {
-						if (CdbConstance.INTERFACE_SOURCE.SMS.equalsIgnoreCase(interfaceSource)) {
-							respBody.setResponseMessage(CdbConstance.RESP_EN_NOPASS_ZONE1);
-						} else {
-							respBody.setResponseMessage(CdbConstance.RESP_TH_NOPASS_ZONE1);
-						}
-						respBody.getResponseItems().setZone(CdbConstance.ZONE_MY_PUBLIC_02);
-					}
-				} else {
-					if (CdbConstance.INTERFACE_SOURCE.SMS.equalsIgnoreCase(interfaceSource)) {
-						respBody.setResponseMessage(CdbConstance.RESP_EN_NOPASS_ZONE1);
-					} else {
-						respBody.setResponseMessage(CdbConstance.RESP_TH_NOPASS_ZONE1);
-					}
-					respBody.getResponseItems().setZone(CdbConstance.ZONE_MY_PUBLIC_02);
-				}
-
-			} else if (mobileZone.getPermitZone().intValue() == CdbConstance.ZONE_MY_BLOCK_01) {// zone private 3
-																								// จว.ชายแดนใต้
-				CdbLogger.debug(logger, "ZONE_MY_BLOCK_01", this.cdbTransactionId);
-				permitZone1 = true;
-				if (CdbConstance.INTERFACE_SOURCE.SMS.equalsIgnoreCase(interfaceSource)) {
-					respBody.setResponseMessage(CdbConstance.RESP_EN_PASS_ZONE1);
-				} else {
-					respBody.setResponseMessage(CdbConstance.RESP_TH_PASS_ZONE1);
-				}
-
-				respBody.getResponseItems().setZone(mobileZone.getPermitZone().intValue());
-				respBody.getResponseItems().setPermitZone1Date(mobileZone.getPermitZone1Date());
-				respBody.getResponseItems().setMdn(request.getRequestMessage().getMdn());
-				respBody.getResponseItems().setStartDate(mobileZone.getStartDate());
-				respBody.getResponseItems().setRegisterId(mobileZone.getRegisterId());
-				respBody.getResponseItems().setServiceType(mobileZone.getServiceType());
-				CdbLogger.debug(logger, "VerifiedIdentity =" + mobileZone.getVerifiedIdentity(), this.cdbTransactionId);
-
-				if (!JavaHelper.isNull(mobileZone.getVerifiedIdentity())// verified ผ่านการยืนยันตัวตน
-						&& mobileZone.getVerifiedIdentity().equalsIgnoreCase(CdbConstance.VERIFIED_IDENTITY_PASS)) {
-					CdbLogger.debug(logger, "VerifiedIdentity was true", this.cdbTransactionId);
-					respBody.getResponseItems().setVerifiedIdentity(true);
-					respBody.getResponseItems().setVerifiedIdentityDate(mobileZone.getVerifiedIdentityDate());
-				} else {
-					CdbLogger.debug(logger, "VerifiedIdentity was false", this.cdbTransactionId);
-					respBody.getResponseItems().setVerifiedIdentity(false);
-				}
-
-			} else {// zone อื่นๆ
-				CdbLogger.debug(logger, "Others zone.", this.cdbTransactionId);
-				if (CdbConstance.INTERFACE_SOURCE.SMS.equalsIgnoreCase(interfaceSource)) {
-					respBody.setResponseMessage(CdbConstance.RESP_EN_NOPASS_ZONE1);
-				} else {
-					respBody.setResponseMessage(CdbConstance.RESP_TH_NOPASS_ZONE1);
-				}
-				respBody.getResponseItems().setZone(CdbConstance.ZONE_MY_PUBLIC_02);
-				permitZone1 = false;
-			}
-
-		} else {// ไม่พบ profile
-			ViewCatMyIdentityZone mobileData = zoneService.findServiceMobileData(request.getRequestMessage().getMdn());
-			CdbLogger.debug(logger, mobileData.getMdn(), this.cdbTransactionId);
-			if (mobileData != null) {
-				respBody.setStatusNotMatch();
-				if (CdbConstance.INTERFACE_SOURCE.SMS.equalsIgnoreCase(interfaceSource)) {
-					respBody.setResponseMessage(CdbConstance.RESP_EN_INVALID_IDCARD_NOTMATCH);
-				} else {
-					respBody.setResponseMessage(CdbConstance.RESP_TH_INVALID_IDCARD_NOTMATCH);
-				}
+		respBody.setResponseDate(new Date());
+		respBody.setCdbTransactionId(requestBy);
+		
+		if(request.getRequestMessage().getReserve_amount() != null && !request.getRequestMessage().getReserve_amount().toString().isEmpty() && !request.getRequestMessage().getReserve_amount().toString().equals("0")) {
+			//Test
+			System.out.println("/bbbbbbbbbbbbb///// : "+request.getRequestMessage().getReserve_amount().toString().charAt(0));
+			tranSevice.getTranSequenceRepository().setIncrementalCrmCaNumber(5);
+//			tranSevice.getTranSequenceRepository().setIncrementalCrmCaNumber(request.getRequestMessage().getReserve_amount().to);
+			
+			Long startSequence = tranSevice.getTranSequenceRepository().getNextCrmCaNumber(); // Increment 1
+			if (startSequence != null && startSequence != 0) {
+				respBody.setResponseItems(new CustomerReserveResponseItem());
+				respBody.getResponseItems().setReserve_start(startSequence);
+//				tranSevice.getTranSequenceRepository().setIncrementalCrmCaNumber(request.getRequestMessage().getReserve_amount().intValue()); // set Increment
+				
+				Long endSequence = tranSevice.getTranSequenceRepository().getNextCrmCaNumber(); // Increment Reserve_amount
+				
+				tranSevice.getTranSequenceRepository().setIncrementalCrmCaNumber(1); // set Increment default
+				respBody.getResponseItems().setReserve_end(endSequence);
+				respBody.setStatusSuccess();
 			} else {
 				respBody.setStatusFail();
-				respBody.setResponseMessage("ไม่พบหมายเลขในระบบ" + "0" + request.getRequestMessage().getMdn()
-						+ ",ทะเบียนเลขที่ " + request.getRequestMessage().getRegisterId());
-				// respBody.setResponseMessage(
-				// MessageFormat.format(CdbConstance.RESP_NOPASS_ZONE1, "0" +
-				// request.getRequestMessage().getMdn()));
 			}
 		}
-
+		
 		respBody.setResponseDate(new Date());
-		respBody.getResponseItems().setIsPermitZone1(permitZone1);
 
 		if (respBody.getResponseCode() == CdbConstance.RESPONE_CODE_SUCCESS)
 			return new ResponseEntity<>(respBody, HttpStatus.OK);
@@ -209,7 +99,7 @@ public class CustomerControllerV1 implements ControllerBase {
 		zoneService.setTransactionId(this.cdbTransactionId);
 		// CdbLogger.debug(logger,"transaction service id
 		// 1:"+zoneService.getTransactionId());
-		myService.setTransactionId(this.cdbTransactionId);
+//		myService.setTransactionId(this.cdbTransactionId);
 
 	}
 

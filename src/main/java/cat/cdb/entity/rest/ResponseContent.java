@@ -64,7 +64,7 @@ public class ResponseContent {
 	
 	public void setStatusNotMatch() {
 		this.responseCode="FAIL";
-		this.responseMessage=CdbConstance.RESPONE_CODE_FAIL;
+		this.responseMessage=CdbConstance.RESPONE_CODE_NOTMATCH;
 	}
 	
 	public void setStatusBadRequest() {
