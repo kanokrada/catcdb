@@ -194,6 +194,7 @@ public class IdentityPermitZone01MyControllerV1 implements ControllerBase {
 		respBody.setResponseDate(new Date());
 		respBody.getResponseItems().setIsPermitZone1(permitZone1);
 
+		logBaseTransaction(request, respBody);
 		if (respBody.getResponseCode() == CdbConstance.RESPONE_CODE_SUCCESS)
 			return new ResponseEntity<>(respBody, HttpStatus.OK);
 		else if (respBody.getResponseCode() == CdbConstance.RESPONE_CODE_FAIL)
@@ -326,8 +327,6 @@ public class IdentityPermitZone01MyControllerV1 implements ControllerBase {
 		respBody.setResponseDate(new Date());
 		respBody.getResponseItems().setIsPermitZone1(permitZone1);
 
-		logBaseTransaction(request, respBody);
-
 		if (respBody.getResponseCode() == CdbConstance.RESPONE_CODE_SUCCESS)
 			return new ResponseEntity<>(respBody, HttpStatus.OK);
 		else if (respBody.getResponseCode() == CdbConstance.RESPONE_CODE_FAIL)
@@ -407,7 +406,7 @@ public class IdentityPermitZone01MyControllerV1 implements ControllerBase {
 			respBody.setResponseCode(CdbConstance.RESPONE_CODE_PARAMETER_INVALID);
 			respBody.setResponseMessage(CdbConstance.RESP_NOPASS_VERIFIED_PARAMETER_INVALID);
 		}
-		
+			
 		if (respBody.getResponseCode() == CdbConstance.RESPONE_CODE_SUCCESS)
 			return new ResponseEntity<>(respBody, HttpStatus.OK);
 		else if (respBody.getResponseCode() == CdbConstance.RESPONE_CODE_FAIL)
@@ -441,6 +440,7 @@ public class IdentityPermitZone01MyControllerV1 implements ControllerBase {
 		 * RESPONSE_MESSAGE VARCHAR2(200) REQUEST_FULL_MESSAGE CLOB
 		 * RESPONSE_FULL_MESSAGE CLOB RECIEVE_DATE DATE RESPONSE_DATE DATE
 		 */
+		
 	}
 
 	@ExceptionHandler
